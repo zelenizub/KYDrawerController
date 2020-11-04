@@ -1,24 +1,24 @@
 /*
-Copyright (c) 2015 Kyohei Yamaguchi. All rights reserved.
+ Copyright (c) 2015 Kyohei Yamaguchi. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
+ Permission is hereby granted, free of charge, to any person obtaining a copy of
+ this software and associated documentation files (the "Software"), to deal in
+ the Software without restriction, including without limitation the rights to
+ use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ of the Software, and to permit persons to whom the Software is furnished to do
+ so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ */
 
 import UIKit
 
@@ -31,15 +31,15 @@ import UIKit
 }
 
 open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
-    
+
     /**************************************************************************/
     // MARK: - Types
     /**************************************************************************/
-    
+
     @objc public enum DrawerDirection: Int {
         case left, right
     }
-    
+
     @objc public enum DrawerState: Int {
         case opened, closed
     }
@@ -53,17 +53,21 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
     @IBInspectable public var drawerAnimationDuration: TimeInterval = 0.25
 
     @IBInspectable public var mainSegueIdentifier: String?
-    
+
     @IBInspectable public var drawerSegueIdentifier: String?
-    
+
+    private var canDragDrawer = true
+
+    private var _isDragging = false
+
     private var _drawerConstraint: NSLayoutConstraint!
-    
+
     private var _drawerWidthConstraint: NSLayoutConstraint!
-    
+
     private var _panStartLocation = CGPoint.zero
-    
+
     private var _panDelta: CGFloat = 0
-    
+
     lazy private var _containerView: UIView = {
         let view = UIView(frame: self.view.frame)
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -77,7 +81,7 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
     private var _isAppearing: Bool?
 
     public var screenEdgePanGestureEnabled = true
-    
+
     public private(set) lazy var screenEdgePanGesture: UIScreenEdgePanGestureRecognizer = {
         let gesture = UIScreenEdgePanGestureRecognizer(
             target: self,
@@ -90,7 +94,7 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
         gesture.delegate = self
         return gesture
     }()
-    
+
     public private(set) lazy var panGesture: UIPanGestureRecognizer = {
         let gesture = UIPanGestureRecognizer(
             target: self,
@@ -108,9 +112,9 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
         gesture.delegate = self
         return gesture
     }()
-    
+
     public weak var delegate: KYDrawerControllerDelegate?
-    
+
     public var drawerDirection: DrawerDirection = .left {
         didSet {
             switch drawerDirection {
@@ -121,12 +125,12 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
             drawerViewController = tmp
         }
     }
-    
+
     public var drawerState: DrawerState {
         get { return _containerView.isHidden ? .closed : .opened }
         set { setDrawerState(drawerState, animated: false) }
     }
-    
+
     @IBInspectable public var drawerWidth: CGFloat = 280 {
         didSet { _drawerWidthConstraint?.constant = drawerWidth }
     }
@@ -175,7 +179,7 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
             mainViewController.didMove(toParent: self)
         }
     }
-    
+
     public var drawerViewController : UIViewController? {
         didSet {
             if let oldController = oldValue {
@@ -214,7 +218,7 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
                 constant: drawerWidth
             )
             drawerViewController.view.addConstraint(_drawerWidthConstraint)
-            
+
             _drawerConstraint = NSLayoutConstraint(
                 item: drawerViewController.view,
                 attribute: itemAttribute,
@@ -240,33 +244,33 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
             drawerViewController.didMove(toParent: self)
         }
     }
-    
-    
+
+
     /**************************************************************************/
     // MARK: - initialize
     /**************************************************************************/
-    
+
     public init(drawerDirection: DrawerDirection, drawerWidth: CGFloat) {
         super.init(nibName: nil, bundle: nil)
         self.drawerDirection = drawerDirection
         self.drawerWidth     = drawerWidth
     }
-    
+
     required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
     }
-    
-    
-    
+
+
+
     /**************************************************************************/
     // MARK: - Life Cycle
     /**************************************************************************/
-    
+
     override open func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         let viewDictionary = ["_containerView": _containerView]
-        
+
         view.addGestureRecognizer(screenEdgePanGesture)
         view.addGestureRecognizer(panGesture)
         view.addSubview(_containerView)
@@ -287,7 +291,7 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
             )
         )
         _containerView.isHidden = true
-        
+
         if let mainSegueID = mainSegueIdentifier {
             performSegue(withIdentifier: mainSegueID, sender: self)
         }
@@ -327,7 +331,13 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
     /**************************************************************************/
     // MARK: - Public Method
     /**************************************************************************/
-    
+
+    public var isDragging: Bool { _isDragging }
+
+    public func setCanDragDrawer(_ canDrag: Bool) {
+        self.canDragDrawer = canDrag
+    }
+
     public func setDrawerState(_ state: DrawerState, animated: Bool) {
         delegate?.drawerController?(self, willChangeState: state)
 
@@ -342,59 +352,62 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
         }
 
         UIView.animate(withDuration: duration,
-            delay: 0,
-            options: .curveEaseOut,
-            animations: { () -> Void in
-                switch state {
-                case .closed:
-                    self._drawerConstraint.constant     = 0
-                    self._containerView.backgroundColor = UIColor(white: 0, alpha: 0)
-                case .opened:
-                    let constant: CGFloat
-                    switch self.drawerDirection {
-                    case .left:
-                        constant = self.drawerWidth
-                    case .right:
-                        constant = -self.drawerWidth
-                    }
-                    self._drawerConstraint.constant     = constant
-                    self._containerView.backgroundColor = UIColor(
-                        white: 0
-                        , alpha: self.containerViewMaxAlpha
-                    )
-                }
-                self._containerView.layoutIfNeeded()
-            }) { (finished: Bool) -> Void in
-                if state == .closed {
-                    self._containerView.isHidden = true
-                }
-                self.drawerViewController?.endAppearanceTransition()
-                self.mainViewController?.endAppearanceTransition()
-                self._isAppearing = nil
+                       delay: 0,
+                       options: .curveEaseOut,
+                       animations: { () -> Void in
+                        switch state {
+                        case .closed:
+                            self._drawerConstraint.constant     = 0
+                            self._containerView.backgroundColor = UIColor(white: 0, alpha: 0)
+                        case .opened:
+                            let constant: CGFloat
+                            switch self.drawerDirection {
+                            case .left:
+                                constant = self.drawerWidth
+                            case .right:
+                                constant = -self.drawerWidth
+                            }
+                            self._drawerConstraint.constant     = constant
+                            self._containerView.backgroundColor = UIColor(
+                                white: 0
+                                , alpha: self.containerViewMaxAlpha
+                            )
+                        }
+                        self._containerView.layoutIfNeeded()
+                       }) { (finished: Bool) -> Void in
+            if state == .closed {
+                self._containerView.isHidden = true
+            }
+            self.drawerViewController?.endAppearanceTransition()
+            self.mainViewController?.endAppearanceTransition()
+            self._isAppearing = nil
 
-                if let didChangeState = self.delegate?.drawerController(_:didChangeState:) {
-                    didChangeState(self, state)
-                } else {
-                    self.delegate?.drawerController?(self, stateChanged: state)
-                }
+            if let didChangeState = self.delegate?.drawerController(_:didChangeState:) {
+                didChangeState(self, state)
+            } else {
+                self.delegate?.drawerController?(self, stateChanged: state)
+            }
         }
     }
-    
+
     /**************************************************************************/
     // MARK: - Private Method
     /**************************************************************************/
-    
+
     @objc final func handlePanGesture(_ sender: UIGestureRecognizer) {
+        guard canDragDrawer else { return }
         _containerView.isHidden = false
         if sender.state == .began {
             _panStartLocation = sender.location(in: view)
         }
-        
+
         let delta           = CGFloat(sender.location(in: view).x - _panStartLocation.x)
         let constant        : CGFloat
         let backGroundAlpha : CGFloat
         let drawerState     : DrawerState
-        
+
+        if delta != 0 { _isDragging = true }
+
         switch drawerDirection {
         case .left:
             drawerState     = _panDelta <= 0 ? .closed : .opened
@@ -411,13 +424,13 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
                 containerViewMaxAlpha*(abs(constant)/drawerWidth)
             )
         }
-        
+
         _drawerConstraint.constant = constant
         _containerView.backgroundColor = UIColor(
             white: 0,
             alpha: backGroundAlpha
         )
-        
+
         switch sender.state {
         case .changed:
             let isAppearing = drawerState != .opened
@@ -431,20 +444,21 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
             _panDelta         = delta
         case .ended, .cancelled:
             setDrawerState(drawerState, animated: true)
+            _isDragging = false
         default:
             break
         }
     }
-    
+
     @objc final func didtapContainerView(_ gesture: UITapGestureRecognizer) {
         setDrawerState(.closed, animated: true)
     }
-    
-    
+
+
     /**************************************************************************/
     // MARK: - UIGestureRecognizerDelegate
     /**************************************************************************/
-    
+
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         switch gestureRecognizer {
         case panGesture:
@@ -454,7 +468,7 @@ open class KYDrawerController: UIViewController, UIGestureRecognizerDelegate {
         default:
             return touch.view == gestureRecognizer.view
         }
-   }
+    }
 
 }
 
